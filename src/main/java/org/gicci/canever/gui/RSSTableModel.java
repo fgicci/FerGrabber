@@ -26,6 +26,13 @@ public class RSSTableModel extends AbstractTableModel {
 	public String getColumnName(int col) {
         return columnNames[col];
     }
+	
+	public int getColumnIndex(String name) {
+		for (int index = 0; index < this.columnNames.length; index++) {
+			if (columnNames[index].equals(name)) return index;
+		}
+        return 0;
+    }
 
 	@Override
 	public Object getValueAt(int row, int col) {

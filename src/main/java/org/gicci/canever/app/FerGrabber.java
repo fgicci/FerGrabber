@@ -31,7 +31,6 @@ public class FerGrabber {
     }
 	
 	public static void main(String[] args) {
-		System.out.println("FerGrabber...running!");
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 createAndShowGUI();

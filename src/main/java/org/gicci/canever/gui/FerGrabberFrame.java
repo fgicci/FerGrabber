@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -16,8 +18,21 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.gicci.canever.model.TableColumnStyle;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 @SuppressWarnings("serial")
 public class FerGrabberFrame extends JFrame {
@@ -32,6 +47,7 @@ public class FerGrabberFrame extends JFrame {
 	private JComboBox<ComboBoxItem> cmbPeriod;
 	private JButton btnProcess;
 	private JButton btnExit;
+	private JTable tblRssContent;
 	
 	private Properties prop;
 	
@@ -109,6 +125,14 @@ public class FerGrabberFrame extends JFrame {
 			}
 		});
 		
+		// Table
+		String[] columns = prop.getProperty("frame.table.columnNames").split(";");
+		tblRssContent = new JTable(new RSSTableModel(columns, getTableContentData()));
+		tblRssContent.setPreferredScrollableViewportSize(new Dimension(500, 70));
+		tblRssContent.setFillsViewportHeight(true);
+		//Create the scroll pane and add the table to it.
+        JScrollPane tblRssContentPane = new JScrollPane(tblRssContent);
+        
 		// Layout
 		GroupLayout layout = new GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -117,19 +141,24 @@ public class FerGrabberFrame extends JFrame {
         
         layout.setHorizontalGroup(layout.createSequentialGroup()
         	.addGroup(layout.createParallelGroup(Alignment.LEADING)
-        		.addComponent(lblUrlAddress)
-        		.addComponent(lblFilePath)
-        		.addComponent(lblPeriod)
-        	)
-        	.addGroup(layout.createParallelGroup(Alignment.LEADING)
-            	.addComponent(txtUrlAddress)
-           		.addComponent(txtFilePath)
-           		.addComponent(cmbPeriod)
-            )
-        	.addGroup(layout.createParallelGroup(Alignment.LEADING)
-            	.addComponent(btnProcess)
-           		.addComponent(btnExit)
-            )
+        		.addGroup(layout.createSequentialGroup()
+		        	.addGroup(layout.createParallelGroup(Alignment.LEADING)
+		        		.addComponent(lblUrlAddress)
+		        		.addComponent(lblFilePath)
+		        		.addComponent(lblPeriod)
+		        	)
+		        	.addGroup(layout.createParallelGroup(Alignment.LEADING)
+		            	.addComponent(txtUrlAddress)
+		           		.addComponent(txtFilePath)
+		           		.addComponent(cmbPeriod)
+		            )
+		        	.addGroup(layout.createParallelGroup(Alignment.LEADING)
+		            	.addComponent(btnProcess)
+		           		.addComponent(btnExit)
+		            )
+		        )
+	        	.addComponent(tblRssContentPane)
+	        )
         );
         		
         layout.linkSize(SwingConstants.HORIZONTAL, btnProcess, btnExit);
@@ -149,6 +178,7 @@ public class FerGrabberFrame extends JFrame {
                 .addComponent(lblPeriod)
                 .addComponent(cmbPeriod)
             )
+            .addComponent(tblRssContentPane)
         );
 	}
 
@@ -178,5 +208,41 @@ public class FerGrabberFrame extends JFrame {
 		return model;
 	}
 	
-	
+	private String[][] getTableContentData() {
+		final String url = "http://feeds.folha.uol.com.br/colunas/rss091.xml";
+		String[][] data = null;
+		String[] tags = prop.getProperty("frame.table.columnTags").split(";");
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db;
+		Document doc;
+		
+		try {
+			db = dbf.newDocumentBuilder();
+			doc = db.parse(new URL(url).openStream());
+			doc.getDocumentElement().normalize();
+			
+			NodeList items = doc.getElementsByTagName("item");
+			data = new String[items.getLength()][tags.length];
+			
+			for (int line = 0; line < items.getLength(); line++) {
+				Node node = items.item(line);
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
+					Element element = (Element) node;
+					for (int column = 0; column < tags.length; column++) {
+						if (tags[column].equals(TableColumnStyle.FILE_CONTENT.toString())) {
+							data[line][column] = "FileName_" + line;
+						} else {
+							data[line][column] = element.getElementsByTagName(tags[column]).item(0).getTextContent();
+						}
+					}
+				}
+			}
+		} catch (ParserConfigurationException | SAXException | IOException ex) {
+			JOptionPane.showMessageDialog(this, ex.getMessage(),
+										  prop.getProperty("application.error.severe"),
+										  JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
+		}
+		return data;
+	}
 }

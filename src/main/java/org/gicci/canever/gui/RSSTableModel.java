@@ -15,20 +15,21 @@ public class RSSTableModel extends AbstractTableModel {
 	
 	@Override
 	public int getRowCount() {
-		// TODO Auto-generated method stub
-		return 0;
+		return data.length;
 	}
 
 	@Override
 	public int getColumnCount() {
-		// TODO Auto-generated method stub
-		return 0;
+		return columnNames.length;
 	}
+	
+	public String getColumnName(int col) {
+        return columnNames[col];
+    }
 
 	@Override
-	public Object getValueAt(int rowIndex, int columnIndex) {
-		// TODO Auto-generated method stub
-		return null;
+	public Object getValueAt(int row, int col) {
+		return data[row][col];
 	}
 	
 	public boolean isCellEditable(int row, int col) {

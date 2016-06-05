@@ -10,12 +10,12 @@ import org.gicci.canever.gui.FerGrabberFrame;
 
 public class FerGrabber {
 
-	private static final String GENERAL_ERROR_DIALOG = "Severe Error";
 	private static final String APP_PROP_FILE = "application.properties";
+	private static Properties prop;
 	
 	private static void createAndShowGUI() {
 		try {
-			Properties prop = new Properties();
+			prop = new Properties();
 			prop.load(FerGrabber.class.getClassLoader().getResourceAsStream(APP_PROP_FILE));
 			FerGrabberFrame ferGrabberFrame = new FerGrabberFrame(prop);
 			ferGrabberFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -23,7 +23,7 @@ public class FerGrabber {
 			ferGrabberFrame.setVisible(true);
 		} catch (NullPointerException | IOException ex) {
 			JOptionPane.showMessageDialog(null, ex.getMessage(),
-										  GENERAL_ERROR_DIALOG,
+										  prop.getProperty("application.error.severe"),
 										  JOptionPane.ERROR_MESSAGE);
 			ex.printStackTrace();
 			System.exit(0);

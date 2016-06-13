@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -31,6 +33,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker.StateValue;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -111,39 +114,10 @@ public class FerGrabberFrame extends JFrame {
 		btnProcess.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (btnProcess.getText().equals(prop.getProperty("frame.label.btnProcess.ready"))){
-					btnProcess.setText(prop.getProperty("frame.label.btnProcess.stop"));
-					txtUrlAddress.setEditable(false);
-					txtFilePath.setEditable(false);
-					cmbPeriod.setEnabled(false);
-					
-					try {
-						processUrlFileConverter = new ProcessUrlFileConverter(getMilisecondsTime());
-						processUrlFileConverter.setUrls(getUrlListFromTable());
-						processUrlFileConverter.execute();
-					} catch (MalformedURLException ex) {
-						JOptionPane.showMessageDialog(null, ex.getMessage(),
-													  prop.getProperty("application.error.severe"),
-													  JOptionPane.ERROR_MESSAGE);
-						ex.printStackTrace();
-					}
-					
+					processReadFunction();
 				} else if (btnProcess.getText().equals(prop.getProperty("frame.label.btnProcess.stop"))){
-					btnProcess.setText(prop.getProperty("frame.label.btnProcess.ready"));
-					processUrlFileConverter.setProcess(false);
-					txtUrlAddress.setEditable(true);
-					txtFilePath.setEditable(true);
-					cmbPeriod.setEnabled(true);
+					processStopFunction();
 				}
-			}
-
-			private List<URL> getUrlListFromTable() {
-				List<URL> urls = new ArrayList<URL>();
-				for (int line = 0; line < rssTableModel.getRowCount(); line++) {
-					try {
-						urls.add(new URL((String) rssTableModel.getValueAt(line, rssTableModel.getColumnIndex("URL"))));
-					} catch (MalformedURLException e) {}
-				}
-				return urls;
 			}
 		});
 		
@@ -303,7 +277,7 @@ public class FerGrabberFrame extends JFrame {
 							while (matcher.find()) {
 							      sb.append(matcher.group());
 							}
-							data[line][column] = sb.toString();
+							data[line][column] = sb.toString().replace("*", "");
 						}
 					}
 				}
@@ -315,5 +289,74 @@ public class FerGrabberFrame extends JFrame {
 			ex.printStackTrace();
 		}
 		return data;
+	}
+	
+	private List<URL> getUrlListFromTable() {
+		List<URL> urls = new ArrayList<URL>();
+		for (int line = 0; line < rssTableModel.getRowCount(); line++) {
+			try {
+				urls.add(new URL((String) rssTableModel.getValueAt(line, rssTableModel.getColumnIndex("URL"))));
+			} catch (MalformedURLException e) {}
+		}
+		return urls;
+	}
+	
+	private void processReadFunction() {
+		btnProcess.setText(prop.getProperty("frame.label.btnProcess.stop"));
+		txtUrlAddress.setEditable(false);
+		txtFilePath.setEditable(false);
+		cmbPeriod.setEnabled(false);
+		
+		try {
+			processUrlFileConverter = new ProcessUrlFileConverter(getMilisecondsTime()) {
+				@Override
+				protected void process(List<String> chunks) {
+					for (final String msg : chunks) {
+						if (msg.equals("REFRESH")) {
+							try {
+								rssTableModel.fireTableDataChanged();
+								setUrls(getUrlListFromTable());
+							} catch (MalformedURLException ex) {
+								JOptionPane.showMessageDialog(null, ex.getMessage(),
+										  prop.getProperty("application.error.severe"),
+										  JOptionPane.ERROR_MESSAGE);
+								ex.printStackTrace();
+							}
+						}
+					}
+				}
+			};
+			processUrlFileConverter.addPropertyChangeListener(new PropertyChangeListener() {
+				@Override
+				public void propertyChange(PropertyChangeEvent evt) {
+					switch (evt.getPropertyName()) {
+					case "state":
+						switch ((StateValue) evt.getNewValue()) {
+							case STARTED:
+								break;
+							case PENDING: 
+							case DONE: 
+								processStopFunction();
+								break;
+						}
+				}
+				}
+			});
+			processUrlFileConverter.setUrls(getUrlListFromTable());
+			processUrlFileConverter.execute();
+		} catch (MalformedURLException ex) {
+			JOptionPane.showMessageDialog(null, ex.getMessage(),
+										  prop.getProperty("application.error.severe"),
+										  JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
+		}
+	}
+	
+	private void processStopFunction() {
+		btnProcess.setText(prop.getProperty("frame.label.btnProcess.ready"));
+		processUrlFileConverter.setProcess(false);
+		txtUrlAddress.setEditable(true);
+		txtFilePath.setEditable(true);
+		cmbPeriod.setEnabled(true);
 	}
 }

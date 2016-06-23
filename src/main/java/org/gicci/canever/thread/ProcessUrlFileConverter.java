@@ -1,9 +1,10 @@
 package org.gicci.canever.thread;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -85,18 +86,22 @@ public class ProcessUrlFileConverter extends SwingWorker<Void, String>{
 	
 	private void createUrlFile(URL url) {
 		
-		String[] tags = prop.getProperty("frame.table.column.content").split(";");
-		String[] formats = prop.getProperty("frame.table.column.format").split(";");
-		String[] types = prop.getProperty("frame.table.column.type").split(";");
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db;
 		Document doc;
 		
 		try {
+			
+			BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+
+	        String inputLine;
+	        while ((inputLine = in.readLine()) != null)
+	            System.out.println(inputLine);
+	        in.close();
+	        
 			db = dbf.newDocumentBuilder();
 			doc = db.parse(url.openStream());
 			doc.getDocumentElement().normalize();
-			
 			
 		} catch(ParserConfigurationException | SAXException | IOException | DOMException ex) {
 			JOptionPane.showMessageDialog(null, ex.getMessage(),
